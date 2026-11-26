@@ -1,0 +1,35 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    session:
+      timeout: 12h
+      cookie:
+        http-only: true
+        same-site: lax
+
+spring:
+  application:
+    name: IdeaForum
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jackson:
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+app:
+  upload:
+    avatar-directory: uploads/avatars
+  cors:
+    allowed-origins: http://localhost:5173
