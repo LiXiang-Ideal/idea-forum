@@ -8,6 +8,7 @@ public class ArticleRow {
     private String summary;
     private String body;
     private String authorName;
+    private String authorUsername;
     private String categoryName;
     private Long categoryId;
     private Long viewCount;
@@ -26,6 +27,8 @@ public class ArticleRow {
     public void setBody(String body) { this.body = body; }
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }
+    public String getAuthorUsername() { return authorUsername; }
+    public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
     public String getCategoryName() { return categoryName; }
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public Long getCategoryId() { return categoryId; }

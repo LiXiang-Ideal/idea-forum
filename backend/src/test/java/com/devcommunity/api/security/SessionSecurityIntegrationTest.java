@@ -7,13 +7,17 @@ import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.devcommunity.api.controller.AuthController;
+import com.devcommunity.api.controller.FollowController;
 import com.devcommunity.api.controller.ProfileController;
 import com.devcommunity.api.dto.AuthDtos;
+import com.devcommunity.api.dto.FollowDtos;
 import com.devcommunity.api.entity.UserEntity;
 import com.devcommunity.api.service.AuthService;
+import com.devcommunity.api.service.FollowService;
 import com.devcommunity.api.service.ProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
@@ -47,6 +51,9 @@ class SessionSecurityIntegrationTest {
 
     @MockitoBean
     private ProfileService profileService;
+
+    @MockitoBean
+    private FollowService followService;
 
     @Test
     void loginRequiresCsrfAndPersistsAuthenticationInTheSession() throws Exception {
@@ -94,6 +101,38 @@ class SessionSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void publicProfileCanBeViewedWithoutASession() throws Exception {
+        when(followService.getPublicProfile("writer", null)).thenReturn(
+                new FollowDtos.PublicProfile(1L, "writer", "Writer", null, null, 0, 0, false));
+
+        mockMvc.perform(get("/api/v1/profiles/writer"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void followedFeedRequiresAnAuthenticatedSession() throws Exception {
+        mockMvc.perform(get("/api/v1/users/me/feed"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void followMutationRequiresAnAuthenticatedSessionEvenWithCsrf() throws Exception {
+        MvcResult csrfResult = mockMvc.perform(get("/api/v1/auth/csrf"))
+                .andExpect(status().isOk())
+                .andReturn();
+        AuthDtos.CsrfResponse csrf = objectMapper.readValue(
+                csrfResult.getResponse().getContentAsString(), AuthDtos.CsrfResponse.class);
+        MockHttpSession session = (MockHttpSession) csrfResult.getRequest().getSession(false);
+
+        mockMvc.perform(put("/api/v1/profiles/author/follow")
+                        .session(session)
+                        .header(csrf.headerName(), csrf.token()))
+                .andExpect(status().isUnauthorized());
+
+        verify(followService, never()).follow(any(), any());
+    }
+
     private UserEntity activeUser() {
         UserEntity user = new UserEntity();
         user.setId(1L);
@@ -107,7 +146,7 @@ class SessionSecurityIntegrationTest {
     @SpringBootConfiguration
     @EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             UserDetailsServiceAutoConfiguration.class})
-    @Import({AuthController.class, ProfileController.class, SecurityConfiguration.class,
+    @Import({AuthController.class, FollowController.class, ProfileController.class, SecurityConfiguration.class,
             SessionAuthenticationService.class})
     static class TestApplication {
     }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   createComment,
   getArticle,
@@ -117,8 +117,13 @@ async function submitComment() {
       <h1>{{ article.title }}</h1>
       <p v-if="article.summary" class="detail-summary">{{ article.summary }}</p>
       <div class="detail-author">
-        <span class="author-avatar large-avatar">{{ (article.authorName || '开').slice(0, 1) }}</span>
-        <div><strong>{{ article.authorName }}</strong><span>分享了一段实践经验</span></div>
+        <RouterLink class="detail-author-link" :to="{ name: 'author', params: { username: article.authorUsername } }">
+          <span class="author-avatar large-avatar">{{ (article.authorName || '开').slice(0, 1) }}</span>
+          <span class="detail-author-copy">
+            <strong>{{ article.authorName }}</strong>
+            <span>@{{ article.authorUsername }} · 分享了一段实践经验</span>
+          </span>
+        </RouterLink>
         <div class="detail-stats"><span>{{ article.viewCount }} 阅读</span><span>♡ {{ article.likeCount }}</span></div>
       </div>
       <div class="detail-rule"></div>

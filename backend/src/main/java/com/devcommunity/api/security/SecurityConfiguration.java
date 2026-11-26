@@ -47,6 +47,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles", "/api/v1/articles/**",
                                 "/api/v1/categories", "/api/v1/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/profiles/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/uploads/avatars/**").permitAll()
                         .anyRequest().authenticated())
                 .build();

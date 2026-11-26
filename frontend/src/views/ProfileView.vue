@@ -4,6 +4,8 @@ import { RouterLink } from 'vue-router'
 import {
   changeCurrentPassword,
   getCurrentProfile,
+  getFollowers,
+  getFollowing,
   getMyArticles,
   getMyBookmarks,
   getMyComments,
@@ -13,9 +15,9 @@ import {
 } from '../api/community'
 import { ApiError } from '../api/http'
 import { useAuthStore } from '../stores/auth'
-import type { ProfileArticle, ProfileComment, UserProfile } from '../types'
+import type { FollowUser, ProfileArticle, ProfileComment, UserProfile } from '../types'
 
-type ProfileTab = 'profile' | 'articles' | 'likes' | 'bookmarks' | 'comments'
+type ProfileTab = 'profile' | 'articles' | 'likes' | 'bookmarks' | 'comments' | 'following' | 'followers'
 
 const auth = useAuthStore()
 const tabs: { id: ProfileTab; label: string }[] = [
@@ -24,6 +26,8 @@ const tabs: { id: ProfileTab; label: string }[] = [
   { id: 'likes', label: '我的点赞' },
   { id: 'bookmarks', label: '我的收藏' },
   { id: 'comments', label: '我的评论' },
+  { id: 'following', label: '我的关注' },
+  { id: 'followers', label: '我的粉丝' },
 ]
 const activeTab = ref<ProfileTab>('profile')
 const profileForm = reactive({ displayName: '', avatarUrl: '', bio: '' })
@@ -47,6 +51,7 @@ const activityLoading = ref(false)
 const activityError = ref('')
 const articleItems = ref<ProfileArticle[]>([])
 const commentItems = ref<ProfileComment[]>([])
+const userItems = ref<FollowUser[]>([])
 const page = ref(1)
 const total = ref(0)
 const pageSize = 12
@@ -183,7 +188,21 @@ async function loadActivity() {
   activityLoading.value = true
   activityError.value = ''
   try {
-    if (activeTab.value === 'comments') {
+    if (activeTab.value === 'followers' || activeTab.value === 'following') {
+      const username = auth.profile?.username
+      if (!username) {
+        activityError.value = '无法确认当前用户，请重新登录后重试。'
+        return
+      }
+      const result = activeTab.value === 'followers'
+        ? await getFollowers(username, page.value, pageSize)
+        : await getFollowing(username, page.value, pageSize)
+      if (requestId !== activityRequestId) return
+      userItems.value = result.items
+      articleItems.value = []
+      commentItems.value = []
+      total.value = result.total
+    } else if (activeTab.value === 'comments') {
       const result = await getMyComments(page.value, pageSize)
       if (requestId !== activityRequestId) return
       commentItems.value = result.items
@@ -215,6 +234,7 @@ function selectTab(tab: ProfileTab) {
   page.value = 1
   articleItems.value = []
   commentItems.value = []
+  userItems.value = []
   total.value = 0
 }
 
@@ -239,7 +259,7 @@ watch(activeTab, (tab) => {
       <div>
         <p class="eyebrow">YOUR SPACE</p>
         <h1>个人中心</h1>
-        <p>管理你的资料，回看一路写下和收藏的内容。</p>
+        <p>管理你的资料，回看创作、互动和关注关系。</p>
       </div>
       <span class="write-mark" aria-hidden="true">✳</span>
     </header>
@@ -398,12 +418,34 @@ watch(activeTab, (tab) => {
           <span class="profile-activity-arrow" aria-hidden="true">↗</span>
         </RouterLink>
       </div>
+      <div v-else-if="(activeTab === 'followers' || activeTab === 'following') && userItems.length"
+        class="follow-user-list">
+        <RouterLink
+          v-for="user in userItems"
+          :key="user.id"
+          class="follow-user-card"
+          :to="{ name: 'author', params: { username: user.username } }"
+        >
+          <span class="author-avatar large-avatar">
+            <img v-if="user.avatarUrl" :src="user.avatarUrl" alt="" />
+            <span v-else>{{ (user.displayName || user.username).slice(0, 1) }}</span>
+          </span>
+          <span class="follow-user-copy">
+            <strong>{{ user.displayName }}</strong>
+            <span>@{{ user.username }}</span>
+            <span v-if="user.bio">{{ user.bio }}</span>
+          </span>
+          <span class="profile-activity-arrow" aria-hidden="true">↗</span>
+        </RouterLink>
+      </div>
       <div v-else class="state-card empty-state">
         <span class="empty-icon">✳</span>
         <strong>这里还没有内容</strong>
         <span v-if="activeTab === 'articles'">写下你的第一篇文章吧。</span>
         <span v-else-if="activeTab === 'likes'">喜欢的文章会出现在这里。</span>
         <span v-else-if="activeTab === 'bookmarks'">收藏的文章会出现在这里。</span>
+        <span v-else-if="activeTab === 'following'">关注的作者会出现在这里。</span>
+        <span v-else-if="activeTab === 'followers'">关注你的用户会出现在这里。</span>
         <span v-else>你发布的评论会出现在这里。</span>
         <RouterLink v-if="activeTab === 'articles'" class="outline-button" :to="{ name: 'write' }">
           开始写作

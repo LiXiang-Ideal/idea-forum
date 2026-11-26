@@ -11,6 +11,7 @@ export interface Article {
   summary: string
   body: string | null
   authorName: string
+  authorUsername: string
   categoryName: string | null
   categoryId?: number | null
   status?: 'DRAFT' | 'PUBLISHED'
@@ -40,6 +41,20 @@ export interface PageResponse<T> {
 }
 
 export interface UserProfile {
+  id: number
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  bio: string | null
+}
+
+export interface PublicProfile extends UserProfile {
+  followerCount: number
+  followingCount: number
+  following: boolean
+}
+
+export interface FollowUser {
   id: number
   username: string
   displayName: string

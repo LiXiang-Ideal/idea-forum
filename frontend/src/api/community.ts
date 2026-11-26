@@ -5,9 +5,11 @@ import type {
   AuthResponse,
   Category,
   Comment,
+  FollowUser,
   PageResponse,
   ProfileArticle,
   ProfileComment,
+  PublicProfile,
   UserProfile,
 } from '../types'
 
@@ -31,6 +33,36 @@ export function getArticles(params: {
 
 export function getArticle(id: number) {
   return request<Article>(`/articles/${id}`)
+}
+
+function profilePath(username: string) {
+  return `/profiles/${encodeURIComponent(username)}`
+}
+
+export function getPublicProfile(username: string) {
+  return request<PublicProfile>(profilePath(username))
+}
+
+export function getPublicArticles(username: string, page: number, size: number) {
+  return request<PageResponse<Article>>(`${profilePath(username)}/articles${activityQuery(page, size)}`)
+}
+
+export function getFollowers(username: string, page: number, size: number) {
+  return request<PageResponse<FollowUser>>(`${profilePath(username)}/followers${activityQuery(page, size)}`)
+}
+
+export function getFollowing(username: string, page: number, size: number) {
+  return request<PageResponse<FollowUser>>(`${profilePath(username)}/following${activityQuery(page, size)}`)
+}
+
+export function setUserFollow(username: string, following: boolean) {
+  return request<PublicProfile>(`${profilePath(username)}/follow`, {
+    method: following ? 'PUT' : 'DELETE',
+  })
+}
+
+export function getFollowFeed(page: number, size: number) {
+  return request<PageResponse<Article>>(`/users/me/feed${activityQuery(page, size)}`)
 }
 
 export function getArticleInteraction(id: number) {

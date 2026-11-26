@@ -184,14 +184,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   transition: padding .2s;
 }
 .article-card:hover { padding-left: 9px; }
+.article-card-link { display: block; color: inherit; }
 .article-card-top { display: flex; align-items: center; gap: 10px; color: #9b9e95; font: 10px var(--mono); }
 .article-number { color: #a3a99a; }
 .category-pill { padding: 4px 8px; border-radius: 4px; color: #657147; background: #e9efd9; font: 10px 'DM Sans', sans-serif; }
 .article-card-top time { margin-left: auto; }
 .article-title { display: block; width: fit-content; max-width: 100%; margin-top: 11px; font: 700 18px/1.5 Manrope, 'Segoe UI', sans-serif; letter-spacing: -.4px; }
-.article-title:hover { color: #71882a; }
+.article-card-link:hover .article-title { color: #71882a; }
 .article-summary { display: -webkit-box; overflow: hidden; max-width: 640px; margin: 6px 0 14px; color: #777c72; font-size: 12px; line-height: 1.8; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .article-meta { display: flex; align-items: center; gap: 13px; color: #9a9d94; font: 10px var(--mono); }
+.article-author-link { display: inline-flex; align-items: center; gap: 7px; color: inherit; }
+.article-author-link:hover .author-name { color: #71882a; }
 .author-avatar { width: 23px; height: 23px; display: inline-grid; place-items: center; border-radius: 50%; background: #e5e9d8; color: #6d7f40; font: 700 11px 'DM Sans', sans-serif; }
 .author-name { color: #5c6259; font: 600 11px 'DM Sans', sans-serif; }
 .meta-separator { height: 12px; width: 1px; background: #d9d9cf; }
@@ -254,10 +257,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .article-detail h1 { margin: 24px 0 13px; color: #252b23; font: 800 clamp(28px, 4vw, 39px)/1.35 Manrope, sans-serif; letter-spacing: -1.3px; }
 .detail-summary { margin: 0; color: #83887d; font-size: 14px; line-height: 1.8; }
 .detail-author { display: flex; align-items: center; gap: 11px; margin-top: 26px; }
+.detail-author-link { display: inline-flex; align-items: center; gap: 11px; color: inherit; }
 .large-avatar { width: 39px; height: 39px; font-size: 15px; }
-.detail-author > div:nth-child(2) { display: flex; flex-direction: column; gap: 4px; }
-.detail-author strong { color: #52594d; font-size: 12px; }
-.detail-author > div:nth-child(2) span { color: #a0a49a; font-size: 10px; }
+.detail-author-copy { display: flex; flex-direction: column; gap: 4px; }
+.detail-author-copy strong { color: #52594d; font-size: 12px; }
+.detail-author-copy > span { color: #a0a49a; font-size: 10px; }
 .detail-stats { display: flex; gap: 14px; margin-left: auto; color: #9a9f94; font: 10px var(--mono); }
 .detail-rule { height: 1px; margin: 26px 0 30px; background: var(--line); }
 .article-body { min-height: 180px; color: #444a40; font-size: 14px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -445,6 +449,53 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .profile-activity-arrow { position: absolute; top: 50%; right: 8px; color: #a4aa98; transform: translateY(-50%); }
 .profile-activity .state-card { margin-top: 0; }
 
+.public-author-card {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 20px;
+  margin-bottom: 27px; padding: 27px 30px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--paper);
+}
+.public-author-avatar {
+  width: 64px; height: 64px; display: grid; place-items: center; overflow: hidden;
+  border-radius: 50%; background: #e5e9d8; color: #6d7f40; font-size: 25px; font-weight: 700;
+}
+.public-author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.public-author-copy h1 { margin: 6px 0 2px; font: 700 23px Manrope, 'Segoe UI', sans-serif; }
+.public-author-username { color: #9a9f94; font: 11px var(--mono); }
+.public-author-bio { margin: 10px 0 0; color: #777c72; font-size: 12px; line-height: 1.7; }
+.public-author-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 17px; }
+.follow-button { min-width: 104px; }
+.follow-button.followed { border: 1px solid #dfe1d5; background: #f3f4ee; color: #565d4e; }
+.follow-button.followed:hover:not(:disabled) { background: #e9eddf; }
+.public-author-stats { display: flex; gap: 20px; }
+.public-author-stats button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 0; border: 0; background: transparent; color: #8d9287; cursor: pointer;
+}
+.public-author-stats button:hover strong { color: var(--green-deep); }
+.public-author-stats strong { color: #42483d; font: 700 15px var(--mono); }
+.public-author-stats span { font-size: 10px; }
+.public-article-list, .follow-user-list { display: flex; flex-direction: column; gap: 11px; }
+.public-article-card {
+  display: block; padding: 19px 22px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--paper); transition: border-color .2s, transform .2s;
+}
+.public-article-card:hover { border-color: #cbd9a7; transform: translateY(-1px); }
+.public-article-card .article-card-top { margin-bottom: 9px; }
+.public-article-card .article-card-top time { margin-left: auto; }
+.public-article-card > strong { display: block; font: 700 16px/1.5 Manrope, 'Segoe UI', sans-serif; }
+.public-article-card > p { margin: 6px 0 12px; color: #777c72; font-size: 12px; line-height: 1.7; }
+.public-article-stats { color: #9a9d94; font: 10px var(--mono); }
+.follow-user-card {
+  position: relative; display: flex; align-items: center; gap: 13px; padding: 16px 38px 16px 17px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--paper);
+}
+.follow-user-card > .author-avatar { flex: 0 0 39px; overflow: hidden; }
+.follow-user-card img { width: 100%; height: 100%; object-fit: cover; }
+.follow-user-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.follow-user-copy strong { color: #454b40; font-size: 12px; }
+.follow-user-copy > span { overflow: hidden; color: #969b8d; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.follow-user-copy > span:last-child:not(:first-child) { max-width: 600px; }
+
 @media (max-width: 720px) {
   .discovery-layout, .site-footer { scroll-margin-top: 145px; }
   .profile-page { width: calc(100% - 32px); margin-top: 27px; }
@@ -453,6 +504,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .profile-tabs { gap: 18px; }
   .profile-panels { grid-template-columns: 1fr; }
   .profile-panel { padding: 25px 20px; }
+  .public-author-card { grid-template-columns: 50px minmax(0, 1fr); gap: 14px; padding: 21px 18px; }
+  .public-author-avatar { width: 50px; height: 50px; font-size: 20px; }
+  .public-author-copy h1 { font-size: 20px; }
+  .public-author-actions { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+  .public-author-stats { gap: 18px; }
+  .public-article-card { padding: 16px; }
+  .follow-user-card { padding-left: 12px; }
 }
 
 @media (max-width: 720px) {

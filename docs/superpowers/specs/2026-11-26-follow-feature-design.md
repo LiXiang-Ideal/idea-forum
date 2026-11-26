@@ -38,13 +38,15 @@
 
 | 方法 | 路径 | 权限 | 用途 |
 | --- | --- | --- | --- |
-| `GET` | `/users/{username}` | 公开 | 返回公开资料、关注计数，以及当前访问者是否关注此用户 |
-| `GET` | `/users/{username}/articles?page=&size=` | 公开 | 分页返回该用户仍有效的已发布文章 |
-| `GET` | `/users/{username}/followers?page=&size=` | 公开 | 分页返回关注该用户的有效用户 |
-| `GET` | `/users/{username}/following?page=&size=` | 公开 | 分页返回该用户关注的有效用户 |
-| `PUT` | `/users/{username}/follow` | 登录 | 建立关注关系 |
-| `DELETE` | `/users/{username}/follow` | 登录 | 移除关注关系 |
+| `GET` | `/profiles/{username}` | 公开 | 返回公开资料、关注计数，以及当前访问者是否关注此用户 |
+| `GET` | `/profiles/{username}/articles?page=&size=` | 公开 | 分页返回该用户仍有效的已发布文章 |
+| `GET` | `/profiles/{username}/followers?page=&size=` | 公开 | 分页返回关注该用户的有效用户 |
+| `GET` | `/profiles/{username}/following?page=&size=` | 公开 | 分页返回该用户关注的有效用户 |
+| `PUT` | `/profiles/{username}/follow` | 登录 | 建立关注关系 |
+| `DELETE` | `/profiles/{username}/follow` | 登录 | 移除关注关系 |
 | `GET` | `/users/me/feed?page=&size=` | 登录 | 分页返回本人关注作者发布的文章 |
+
+公开主页资源使用 `/profiles/{username}`，以保留现有 `/users/me` 私人资料路由并避免两种资源标识冲突。
 
 公开资料仅包含用户名、显示名称、头像 URL、简介、关注数、关注中人数和访问者的关注状态，不返回邮箱等私密字段。不存在或已停用的用户统一按公开资源不存在处理。分页参数遵循现有 profile service 规则，将页码限制为至少 1、每页条数限制为 1–50。
 

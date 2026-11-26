@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, type RouteLocationRaw } from 'vue-router'
-import { getArticles, getCategories } from '../api/community'
+import { getArticles, getCategories, getFollowFeed } from '../api/community'
 import { ApiError } from '../api/http'
+import { useAuthStore } from '../stores/auth'
 import type { Article, Category } from '../types'
 
 const route = useRoute()
+const auth = useAuthStore()
 const heroSlides: {
   eyebrow: string
   titleFirst: string
@@ -51,7 +53,10 @@ const carouselElement = ref<HTMLElement | null>(null)
 let carouselTimer: number | undefined
 let motionPreference: MediaQueryList | undefined
 const keyword = computed(() => typeof route.query.keyword === 'string' ? route.query.keyword : '')
+const feedMode = ref<'latest' | 'following'>(route.query.feed === 'following' ? 'following' : 'latest')
+const requiresLogin = computed(() => feedMode.value === 'following' && !auth.isAuthenticated)
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / 12)))
+let articlesRequestId = 0
 
 function clearCarouselTimer() {
   if (carouselTimer !== undefined) {
@@ -83,27 +88,51 @@ function updateMotionPreference() {
 }
 
 async function load() {
+  const requestId = ++articlesRequestId
+  if (requiresLogin.value) {
+    articles.value = []
+    total.value = 0
+    loading.value = false
+    error.value = ''
+    return
+  }
   loading.value = true
   error.value = ''
   try {
-    const result = await getArticles({
-      keyword: keyword.value,
-      categoryId: activeCategory.value ?? undefined,
-      page: page.value,
-      size: 12,
-    })
+    const result = feedMode.value === 'following'
+      ? await getFollowFeed(page.value, 12)
+      : await getArticles({
+          keyword: keyword.value,
+          categoryId: activeCategory.value ?? undefined,
+          page: page.value,
+          size: 12,
+        })
+    if (requestId !== articlesRequestId) return
     articles.value = result.items
     total.value = result.total
   } catch (cause) {
-    error.value = cause instanceof ApiError ? cause.message : '内容加载失败，请稍后重试。'
+    if (requestId === articlesRequestId) {
+      error.value = cause instanceof ApiError ? cause.message : '内容加载失败，请稍后重试。'
+    }
   } finally {
-    loading.value = false
+    if (requestId === articlesRequestId) loading.value = false
   }
+}
+
+function selectFeed(nextFeed: 'latest' | 'following') {
+  if (feedMode.value === nextFeed) return
+  page.value = 1
+  activeCategory.value = null
+  feedMode.value = nextFeed
 }
 
 function selectCategory(id: number | null) {
   activeCategory.value = id
   page.value = 1
+  if (feedMode.value === 'following') {
+    feedMode.value = 'latest'
+    return
+  }
   void load()
 }
 
@@ -133,7 +162,7 @@ onBeforeUnmount(() => {
   motionPreference?.removeEventListener('change', updateMotionPreference)
 })
 
-watch(() => route.query.keyword, () => {
+watch([() => route.query.keyword, feedMode], () => {
   page.value = 1
   void load()
 })
@@ -216,24 +245,39 @@ watch(() => route.query.keyword, () => {
         <div class="section-heading">
           <div>
             <p class="eyebrow">THE COMMUNITY</p>
-            <h2>{{ keyword ? `搜索「${keyword}」` : '今天读点什么' }}</h2>
+              <h2>
+                {{ feedMode === 'following' ? '关注的人在写什么' : keyword ? `搜索「${keyword}」` : '今天读点什么' }}
+              </h2>
           </div>
           <span class="result-count">{{ total }} 篇内容</span>
         </div>
 
         <div class="feed-tabs" role="tablist" aria-label="文章筛选">
-          <button :class="{ selected: activeCategory === null }" @click="selectCategory(null)">最新</button>
-          <button
-            v-for="category in categories"
-            :key="category.id"
-            :class="{ selected: activeCategory === category.id }"
-            @click="selectCategory(category.id)"
-          >
-            {{ category.name }}
-          </button>
+            <button
+              :class="{ selected: feedMode === 'latest' && activeCategory === null }"
+              @click="selectCategory(null)"
+            >最新</button>
+            <button :class="{ selected: feedMode === 'following' }" @click="selectFeed('following')">关注</button>
+            <button
+              v-for="category in categories"
+              :key="category.id"
+              :class="{ selected: feedMode === 'latest' && activeCategory === category.id }"
+              @click="selectCategory(category.id)"
+            >
+              {{ category.name }}
+            </button>
         </div>
 
-        <div v-if="loading" class="state-card">
+        <div v-if="requiresLogin" class="state-card empty-state">
+          <span class="empty-icon">✳</span>
+          <strong>登录后查看关注动态</strong>
+          <span>登录后即可浏览你关注作者发布的文章。</span>
+          <RouterLink
+            class="outline-button"
+            :to="{ name: 'login', query: { redirect: route.fullPath } }"
+          >登录</RouterLink>
+        </div>
+        <div v-else-if="loading" class="state-card">
           <span class="loading-mark"></span> 正在整理新鲜内容…
         </div>
         <div v-else-if="error" class="state-card error-state">
@@ -243,37 +287,45 @@ watch(() => route.query.keyword, () => {
         </div>
         <div v-else-if="articles.length === 0" class="state-card empty-state">
           <span class="empty-icon">✳</span>
-          <strong>{{ keyword ? '没有找到相关内容' : '这里还没有文章' }}</strong>
-          <span>成为第一个分享经验的人吧。</span>
-          <RouterLink class="outline-button" :to="{ name: 'write' }">写下第一篇</RouterLink>
+          <strong>
+            {{ feedMode === 'following' ? '关注的人还没有发布文章' : keyword ? '没有找到相关内容' : '这里还没有文章' }}
+          </strong>
+          <span>{{ feedMode === 'following' ? '去发现页认识一些作者，再回来看看吧。' : '成为第一个分享经验的人吧。' }}</span>
+          <RouterLink v-if="feedMode === 'latest'" class="outline-button" :to="{ name: 'write' }">写下第一篇</RouterLink>
+          <button v-else class="outline-button" type="button" @click="selectFeed('latest')">去发现</button>
         </div>
 
         <div v-else class="article-list">
-          <RouterLink
+          <article
             v-for="(article, index) in articles"
             :key="article.id"
             class="article-card"
-            :to="{ name: 'article', params: { id: article.id } }"
           >
-            <div class="article-card-top">
-              <span class="article-number">{{ String((page - 1) * 12 + index + 1).padStart(2, '0') }}</span>
-              <span v-if="article.categoryName" class="category-pill">{{ article.categoryName }}</span>
-              <time v-if="article.publishedAt">{{ new Date(article.publishedAt).toLocaleDateString('zh-CN') }}</time>
-            </div>
-            <span class="article-title">
-              {{ article.title }}
-            </span>
-            <p class="article-summary">{{ article.summary || article.body }}</p>
+            <RouterLink class="article-card-link" :to="{ name: 'article', params: { id: article.id } }">
+              <div class="article-card-top">
+                <span class="article-number">{{ String((page - 1) * 12 + index + 1).padStart(2, '0') }}</span>
+                <span v-if="article.categoryName" class="category-pill">{{ article.categoryName }}</span>
+                <time v-if="article.publishedAt">{{ new Date(article.publishedAt).toLocaleDateString('zh-CN') }}</time>
+              </div>
+              <span class="article-title">{{ article.title }}</span>
+              <p class="article-summary">{{ article.summary || article.body }}</p>
+            </RouterLink>
             <div class="article-meta">
-              <span class="author-avatar">{{ (article.authorName || '开').slice(0, 1) }}</span>
-              <span class="author-name">{{ article.authorName }}</span>
+              <RouterLink
+                class="article-author-link"
+                :to="{ name: 'author', params: { username: article.authorUsername } }"
+                @click.stop
+              >
+                <span class="author-avatar">{{ (article.authorName || '开').slice(0, 1) }}</span>
+                <span class="author-name">{{ article.authorName }}</span>
+              </RouterLink>
               <span class="meta-separator"></span>
               <span>{{ article.viewCount }} 阅读</span>
               <span>♡ {{ article.likeCount }}</span>
               <span>▤ {{ article.commentCount }}</span>
             </div>
             <span class="article-arrow" aria-hidden="true">↗</span>
-          </RouterLink>
+          </article>
         </div>
 
         <div v-if="!loading && !error && pageCount > 1" class="pagination">

@@ -11,7 +11,8 @@ import org.apache.ibatis.annotations.Update;
 public interface ArticleMapper extends BaseMapper<ArticleEntity> {
     @Select("""
             SELECT a.id, a.title, a.summary, NULL AS body,
-                   u.display_name AS author_name, c.name AS category_name,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name,
                    a.view_count,
                    (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
                    (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,
@@ -46,7 +47,8 @@ public interface ArticleMapper extends BaseMapper<ArticleEntity> {
 
     @Select("""
             SELECT a.id, a.title, a.summary, NULL AS body,
-                   u.display_name AS author_name, c.name AS category_name,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name,
                    a.view_count,
                    (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
                    (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,
@@ -72,7 +74,8 @@ public interface ArticleMapper extends BaseMapper<ArticleEntity> {
 
     @Select("""
             SELECT a.id, a.title, a.summary, NULL AS body,
-                   u.display_name AS author_name, c.name AS category_name,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name,
                    a.view_count,
                    (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
                    (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,
@@ -100,7 +103,8 @@ public interface ArticleMapper extends BaseMapper<ArticleEntity> {
 
     @Select("""
             SELECT a.id, a.title, a.summary, NULL AS body,
-                   u.display_name AS author_name, c.name AS category_name,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name,
                    a.view_count,
                    (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
                    (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,
@@ -127,8 +131,65 @@ public interface ArticleMapper extends BaseMapper<ArticleEntity> {
     long countBookmarkedByUser(@Param("userId") long userId);
 
     @Select("""
+            SELECT a.id, a.title, a.summary, NULL AS body,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name, a.view_count,
+                   (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
+                   (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,
+                   a.published_at, a.status
+            FROM articles a
+            JOIN users u ON u.id = a.author_id
+            LEFT JOIN categories c ON c.id = a.category_id
+            WHERE a.author_id = #{authorId} AND a.status = 'PUBLISHED' AND u.status = 'ACTIVE'
+            ORDER BY a.published_at DESC, a.id DESC
+            LIMIT #{limit} OFFSET #{offset}
+            """)
+    List<ArticleRow> findPublishedByAuthor(
+            @Param("authorId") long authorId,
+            @Param("limit") int limit,
+            @Param("offset") long offset);
+
+    @Select("""
+            SELECT COUNT(*)
+            FROM articles a
+            JOIN users u ON u.id = a.author_id
+            WHERE a.author_id = #{authorId} AND a.status = 'PUBLISHED' AND u.status = 'ACTIVE'
+            """)
+    long countPublishedByAuthor(@Param("authorId") long authorId);
+
+    @Select("""
+            SELECT a.id, a.title, a.summary, NULL AS body,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name, a.view_count,
+                   (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
+                   (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,
+                   a.published_at, a.status
+            FROM follows f
+            JOIN articles a ON a.author_id = f.followee_id
+            JOIN users u ON u.id = a.author_id
+            LEFT JOIN categories c ON c.id = a.category_id
+            WHERE f.follower_id = #{userId} AND a.status = 'PUBLISHED' AND u.status = 'ACTIVE'
+            ORDER BY a.published_at DESC, a.id DESC
+            LIMIT #{limit} OFFSET #{offset}
+            """)
+    List<ArticleRow> findFollowedFeed(
+            @Param("userId") long userId,
+            @Param("limit") int limit,
+            @Param("offset") long offset);
+
+    @Select("""
+            SELECT COUNT(*)
+            FROM follows f
+            JOIN articles a ON a.author_id = f.followee_id
+            JOIN users u ON u.id = a.author_id
+            WHERE f.follower_id = #{userId} AND a.status = 'PUBLISHED' AND u.status = 'ACTIVE'
+            """)
+    long countFollowedFeed(@Param("userId") long userId);
+
+    @Select("""
             SELECT a.id, a.title, a.summary, a.body, a.category_id, a.status,
-                   u.display_name AS author_name, c.name AS category_name,
+                   u.display_name AS author_name, u.username AS author_username,
+                   c.name AS category_name,
                    a.view_count,
                    (SELECT COUNT(*) FROM article_likes l WHERE l.article_id = a.id) AS like_count,
                    (SELECT COUNT(*) FROM comments cm WHERE cm.article_id = a.id AND cm.status = 'ACTIVE') AS comment_count,

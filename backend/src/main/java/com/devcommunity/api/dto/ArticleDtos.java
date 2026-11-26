@@ -27,6 +27,7 @@ public final class ArticleDtos {
             String summary,
             String body,
             String authorName,
+            String authorUsername,
             String categoryName,
             Long viewCount,
             Long likeCount,
@@ -36,7 +37,8 @@ public final class ArticleDtos {
             String status) {
         public static ArticleView from(ArticleRow row) {
             return new ArticleView(row.getId(), row.getTitle(), row.getSummary(), row.getBody(),
-                    row.getAuthorName(), row.getCategoryName(), row.getViewCount(), row.getLikeCount(),
+                    row.getAuthorName(), row.getAuthorUsername(), row.getCategoryName(),
+                    row.getViewCount(), row.getLikeCount(),
                     row.getCommentCount(),
                     row.getPublishedAt() == null ? null : row.getPublishedAt().toInstant(ZoneOffset.UTC),
                     row.getCategoryId(), row.getStatus());
